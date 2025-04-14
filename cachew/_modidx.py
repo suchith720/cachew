@@ -5,4 +5,4 @@ d = { 'settings': { 'branch': 'main',
                 'doc_host': 'https://suchith720.github.io',
                 'git_url': 'https://github.com/suchith720/cachew',
                 'lib_path': 'cachew'},
-  'syms': {'cachew.core': {'cachew.core.foo': ('core.html#foo', 'cachew/core.py')}}}
+  'syms': {'cachew.00_cachew-for-wikiseealsotitles': {}}}
