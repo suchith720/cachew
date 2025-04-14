@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "cachew"
+  site-url: "https://suchith720.github.io/cachew"
+  description: "Encoder models with memory"
+  repo-branch: main
+  repo-url: "https://github.com/suchith720/cachew"
