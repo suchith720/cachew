@@ -15,7 +15,7 @@ from xcai.models.cachew import CAW001, CachewConfig
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 os.environ['WANDB_PROJECT'] = 'mogicX_01-wikiseealsotitles'
 
-# %% ../nbs/00_cachew-for-wikiseealsotitles.ipynb 17
+# %% ../nbs/00_cachew-for-wikiseealsotitles.ipynb 19
 if __name__ == '__main__':
     output_dir = '/scratch/scai/phd/aiz218323/outputs/mogicX/00_cachew-for-wikiseealsotitles'
 

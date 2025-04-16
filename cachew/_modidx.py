@@ -5,4 +5,6 @@ d = { 'settings': { 'branch': 'main',
                 'doc_host': 'https://suchith720.github.io',
                 'git_url': 'https://github.com/suchith720/cachew',
                 'lib_path': 'cachew'},
-  'syms': {'cachew.00_cachew-for-wikiseealsotitles': {}, 'cachew.01_cachew-for-wikiseealsotitles-with-meta-loss': {}}}
+  'syms': { 'cachew.00_cachew-for-wikiseealsotitles': {},
+            'cachew.01_cachew-for-wikiseealsotitles-with-meta-loss': {},
+            'cachew.02_ngame-benchmarking-with-updated-loss': {}}}
