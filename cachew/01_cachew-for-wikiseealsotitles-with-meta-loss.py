@@ -13,11 +13,11 @@ from xcai.models.cachew import CAW002, CachewConfig
 
 # %% ../nbs/01_cachew-for-wikiseealsotitles-with-meta-loss.ipynb 5
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
-os.environ['WANDB_PROJECT'] = 'mogicX_01-wikiseealsotitles'
+os.environ['WANDB_PROJECT'] = 'cachew_00-wikiseealsotitles'
 
 # %% ../nbs/01_cachew-for-wikiseealsotitles-with-meta-loss.ipynb 7
 if __name__ == '__main__':
-    output_dir = '/scratch/scai/phd/aiz218323/outputs/mogicX/01_cachew-for-wikiseealsotitles-with-meta-loss'
+    output_dir = '/scratch/scai/phd/aiz218323/outputs/cachew/01_cachew-for-wikiseealsotitles-with-meta-loss'
 
     data_dir = '/home/scai/phd/aiz218323/scratch/datasets/benchmarks/'
     config_file = 'wikiseealsotitles'
@@ -38,7 +38,9 @@ if __name__ == '__main__':
 
     os.makedirs(os.path.dirname(pkl_file), exist_ok=True)
     block = build_block(pkl_file, config_file, input_args.use_sxc_sampler, config_key, do_build=input_args.build_block, only_test=input_args.only_test, 
-                        n_slbl_samples=4, main_oversample=False, n_sdata_meta_samples=5, meta_oversample=False, train_meta_topk=5, test_meta_topk=3)
+                        n_slbl_samples=4, main_oversample=False, n_sdata_meta_samples=5, meta_oversample=False, train_meta_topk=5, test_meta_topk=3, 
+                        data_dir=data_dir)
+    block.test.dset.meta = {}
 
     args = XCLearningArguments(
         output_dir=output_dir,
