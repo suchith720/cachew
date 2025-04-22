@@ -143,11 +143,16 @@ if __name__ == '__main__':
         use_encoder_parallel=True
     )
     
-    model = CAW002.from_pretrained('sentence-transformers/msmarco-distilbert-base-v4', config=config)
-    model.init_combiner_to_last_layer()
-    
-    meta_embeddings = torch.tensor(np.load(meta_embed_init_file), dtype=torch.float32)
-    model.set_memory_embeddings(meta_embeddings)
+    if do_inference: mname = f'{output_dir}/{os.path.basename(get_best_model(output_dir))}'
+    else: mname = 'sentence-transformers/msmarco-distilbert-base-v4'
+
+    model = CAW002.from_pretrained(mname, config=config)
+
+    if not do_inference:
+        model.init_combiner_to_last_layer()
+        
+        meta_embeddings = torch.tensor(np.load(meta_embed_init_file), dtype=torch.float32)
+        model.set_memory_embeddings(meta_embeddings)
 
     metric = PrecReclMrr(block.n_lbl, block.test.data_lbl_filterer, prop=block.train.dset.data.data_lbl,
                          pk=10, rk=200, rep_pk=[1, 3, 5, 10], rep_rk=[10, 100, 200], mk=[5, 10, 20])
