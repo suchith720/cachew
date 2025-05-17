@@ -16,4 +16,5 @@ d = { 'settings': { 'branch': 'main',
                                                                                                                                        'cachew/00_cachew-for-wikiseealsotitles-inference.py')},
             'cachew.01_cachew-for-wikiseealsotitles-with-meta-loss': {},
             'cachew.02_ngame-benchmarking-with-updated-loss': {},
-            'cachew.03_cachew-for-wikiseealsotitles-for-training-memory': {}}}
+            'cachew.03_cachew-for-wikiseealsotitles-for-training-memory': {},
+            'cachew.04_cachew-for-wikiseealsotitles-with-meta-loss-and-product-key-memory': {}}}
