@@ -19,5 +19,5 @@ d = { 'settings': { 'branch': 'main',
             'cachew.02_ngame-benchmarking-with-updated-loss-001': {},
             'cachew.03_cachew-for-wikiseealsotitles-for-training-memory': {},
             'cachew.03_cachew-for-wikiseealsotitles-for-training-memory-001': {},
-            'cachew.04_cachew-for-wikiseealsotitles-with-meta-loss-and-product-key-memory': {},
-            'cachew.04_oak-for-wikiseealsotitles-001': {}}}
+            'cachew.04_oak-for-wikiseealsotitles-001': {},
+            'cachew.05_cachew-for-wikiseealsotitles-with-meta-loss-and-product-key-memory': {}}}
