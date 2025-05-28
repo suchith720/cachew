@@ -4,7 +4,10 @@
 __all__ = []
 
 # %% ../nbs/00_cachew-for-wikiseealsotitles.ipynb 3
-import os,torch,json, torch.multiprocessing as mp, joblib, numpy as np, scipy.sparse as sp
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+
+import torch,json, torch.multiprocessing as mp, joblib, numpy as np, scipy.sparse as sp
 
 from xcai.main import *
 from xcai.basics import *
@@ -12,10 +15,9 @@ from xcai.basics import *
 from xcai.models.cachew import CAW001, CachewConfig
 
 # %% ../nbs/00_cachew-for-wikiseealsotitles.ipynb 5
-os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 os.environ['WANDB_PROJECT'] = 'mogicX_01-wikiseealsotitles'
 
-# %% ../nbs/00_cachew-for-wikiseealsotitles.ipynb 19
+# %% ../nbs/00_cachew-for-wikiseealsotitles.ipynb 24
 if __name__ == '__main__':
     output_dir = '/scratch/scai/phd/aiz218323/outputs/mogicX/00_cachew-for-wikiseealsotitles'
 
