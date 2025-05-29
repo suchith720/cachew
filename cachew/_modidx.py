@@ -21,4 +21,5 @@ d = { 'settings': { 'branch': 'main',
             'cachew.03_cachew-for-wikiseealsotitles-for-training-memory-001': {},
             'cachew.04_oak-for-wikiseealsotitles-001': {},
             'cachew.05_cachew-for-wikiseealsotitles-with-meta-loss-and-product-key-memory': {},
-            'cachew.06_ngame-for-wikiseealsotitles-with-augmented-training': {}}}
+            'cachew.06_ngame-for-wikiseealsotitles-with-augmented-training': {},
+            'cachew.07_sandwich-for-wikiseealsotitles': {}}}
