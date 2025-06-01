@@ -19,14 +19,15 @@ os.environ['WANDB_PROJECT'] = 'cachew_00-wikiseealsotitles'
 
 # %% ../nbs/01_cachew-for-wikiseealsotitles-with-meta-loss.ipynb 7
 if __name__ == '__main__':
-    # output_dir = '/home/aiscuser/scratch1/outputs/cachew/04_oak-for-wikiseealsotitles-001'
-    output_dir = '/data/outputs/cachew/04_oak-for-wikiseealsotitles-001'
+    output_dir = '/home/aiscuser/scratch1/outputs/cachew/04_oak-for-wikiseealsotitles-002'
 
     data_dir = '/data/datasets/benchmarks/'
     config_file = 'wikiseealsotitles'
     config_key = 'data_lnk'
     
     meta_embed_init_file = '/data/datasets/ogb_weights/LF-WikiSeeAlsoTitles-320K/emb_weights.npy'
+
+    mname = 'sentence-transformers/msmarco-distilbert-base-v4'
     
     meta_name = 'lnk'
 
@@ -53,8 +54,8 @@ if __name__ == '__main__':
         representation_accumulation_steps=10,
         save_strategy="steps",
         eval_strategy="steps",
-        eval_steps=5000,
-        save_steps=5000,
+        eval_steps=100, # 5000,
+        save_steps=100, # 5000,
         save_total_limit=5,
         num_train_epochs=300,
         predict_with_representation=True,
@@ -65,8 +66,8 @@ if __name__ == '__main__':
         representation_search_type='BRUTEFORCE',
     
         representation_attribute='data_enriched_repr',
-        output_representation_attribute='data_enriched_repr',
         clustering_representation_attribute='data_enriched_repr',
+        output_representation_attribute='data_enriched_repr',
         data_augmentation_attribute='data_repr',
         label_representation_attribute='data_repr',
         metadata_representation_attribute='data_repr',
@@ -91,6 +92,9 @@ if __name__ == '__main__':
         fp16=True,
     
         label_names=[f'{meta_name}2data_idx', f'{meta_name}2data_data2ptr'],
+
+        data_aug_prefix=meta_name,
+        use_label_metadata=False,
                      
         prune_metadata=False,
         num_metadata_prune_warmup_epochs=10,
@@ -104,8 +108,6 @@ if __name__ == '__main__':
     
         data_aug_meta_name=meta_name,
         augmentation_num_beams=None,
-        data_aug_prefix=meta_name,
-        use_label_metadata=False,
     
         data_meta_batch_size=2048,
         augment_metadata=False,
@@ -147,20 +149,22 @@ if __name__ == '__main__':
         use_self_linker=False,
     )
     
-    if do_inference: mname = f'{output_dir}/{os.path.basename(get_best_model(output_dir))}'
-    else: mname = 'sentence-transformers/msmarco-distilbert-base-v4'
+    def model_fn(mname):
+        model = CAW002.from_pretrained(mname, config=config)
+        return model
 
-    model = CAW002.from_pretrained(mname, config=config)
-
-    if not do_inference:
+    def init_fn(model): 
         model.init_combiner_to_last_layer()
-        # model.init_heads_to_identity()
+        model.init_heads_to_identity()
         
         meta_embeddings = torch.tensor(np.load(meta_embed_init_file), dtype=torch.float32)
         model.set_memory_embeddings(meta_embeddings)
 
     metric = PrecReclMrr(block.n_lbl, block.test.data_lbl_filterer, prop=block.train.dset.data.data_lbl,
                          pk=10, rk=200, rep_pk=[1, 3, 5, 10], rep_rk=[10, 100, 200], mk=[5, 10, 20])
+
+    model = load_model(args.output_dir, model_fn, {"mname": mname}, init_fn, do_inference=do_inference, 
+            use_pretrained=input_args.use_pretrained)
 
     learn = XCLearner(
         model=model,
@@ -171,7 +175,5 @@ if __name__ == '__main__':
         compute_metrics=metric,
     )
 
-    if do_inference: os.environ['WANDB_MODE'] = 'disabled'
-    
     main(learn, input_args, n_lbl=block.n_lbl)
     

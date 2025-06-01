@@ -5,7 +5,7 @@ __all__ = []
 
 # %% ../nbs/01_cachew-for-wikiseealsotitles-with-meta-loss.ipynb 3
 import os
-os.environ['HIP_VISIBLE_DEVICES'] = '12,13'
+os.environ['HIP_VISIBLE_DEVICES'] = '14,15'
 
 import torch,json, torch.multiprocessing as mp, joblib, numpy as np, scipy.sparse as sp
 
@@ -19,20 +19,17 @@ os.environ['WANDB_PROJECT'] = 'cachew_00-wikiseealsotitles'
 
 # %% ../nbs/01_cachew-for-wikiseealsotitles-with-meta-loss.ipynb 7
 if __name__ == '__main__':
-    # output_dir = '/home/aiscuser/scratch1/outputs/cachew/04_oak-for-wikiseealsotitles-001'
-    output_dir = '/data/outputs/cachew/04_oak-for-wikiseealsotitles-001'
+    output_dir = '/data/outputs/cachew/01_cachew-for-wikiseealsotitles-with-meta-loss-005'
 
     data_dir = '/data/datasets/benchmarks/'
     config_file = 'wikiseealsotitles'
-    config_key = 'data_lnk'
+    config_key = 'data_meta'
     
-    meta_embed_init_file = '/data/datasets/ogb_weights/LF-WikiSeeAlsoTitles-320K/emb_weights.npy'
-    
-    meta_name = 'lnk'
+    meta_name = 'cat'
 
     input_args = parse_args()
 
-    pkl_file = f'{input_args.pickle_dir}/cachew/wikiseealsotitles_data-lnk_distilbert-base-uncased'
+    pkl_file = f'{input_args.pickle_dir}/cachew/wikiseealsotitles_data-meta_distilbert-base-uncased'
     pkl_file = f'{pkl_file}_sxc' if input_args.use_sxc_sampler else f'{pkl_file}_xcs'
     if input_args.only_test: pkl_file = f'{pkl_file}_only-test'
     pkl_file = f'{pkl_file}.joblib'
@@ -43,6 +40,7 @@ if __name__ == '__main__':
     block = build_block(pkl_file, config_file, input_args.use_sxc_sampler, config_key, do_build=input_args.build_block, only_test=input_args.only_test, 
                         n_slbl_samples=4, main_oversample=False, n_sdata_meta_samples=5, meta_oversample=False, train_meta_topk=5, test_meta_topk=3, 
                         data_dir=data_dir)
+    block.test.dset.meta = {}
 
     args = XCLearningArguments(
         output_dir=output_dir,
@@ -64,12 +62,12 @@ if __name__ == '__main__':
         learning_rate=2e-4,
         representation_search_type='BRUTEFORCE',
     
-        representation_attribute='data_enriched_repr',
         output_representation_attribute='data_enriched_repr',
-        clustering_representation_attribute='data_enriched_repr',
-        data_augmentation_attribute='data_repr',
         label_representation_attribute='data_repr',
         metadata_representation_attribute='data_repr',
+        data_augmentation_attribute='data_repr',
+        representation_attribute='data_enriched_repr',
+        clustering_representation_attribute='data_enriched_repr',
     
         group_by_cluster=True,
         num_clustering_warmup_epochs=10,
@@ -90,7 +88,7 @@ if __name__ == '__main__':
         max_grad_norm=None,
         fp16=True,
     
-        label_names=[f'{meta_name}2data_idx', f'{meta_name}2data_data2ptr'],
+        label_names=[f'{meta_name}2data_idx', f'{meta_name}2data_data2ptr', f'p{meta_name}2data_idx', f'p{meta_name}2data_data2ptr'],
                      
         prune_metadata=False,
         num_metadata_prune_warmup_epochs=10,
@@ -118,9 +116,9 @@ if __name__ == '__main__':
 
     config = CachewConfig(
         top_k_metadata = 5,
-        num_metadata=block.train.dset.meta[f'{meta_name}_meta'].n_meta,
+        num_metadata=block.train.dset.meta['cat_meta'].n_meta,
     
-        data_aug_meta_prefix=f'{meta_name}2data', 
+        data_aug_meta_prefix='cat2data', 
         lbl2data_aug_meta_prefix=None,
 
         data_enrich=True,
@@ -138,26 +136,15 @@ if __name__ == '__main__':
         calib_loss_weight=0.1,
         use_calib_loss=True,
 
-        meta_loss_weight=0.0,
-        use_meta_loss=False,
+        meta_loss_weight=1.0,
+        use_meta_loss=True,
     
         use_query_loss=True, 
-        use_encoder_parallel=True,
-
-        use_self_linker=False,
+        use_encoder_parallel=True
     )
     
-    if do_inference: mname = f'{output_dir}/{os.path.basename(get_best_model(output_dir))}'
-    else: mname = 'sentence-transformers/msmarco-distilbert-base-v4'
-
+    mname = f'{output_dir}/{os.path.basename(get_best_model(output_dir))}'
     model = CAW002.from_pretrained(mname, config=config)
-
-    if not do_inference:
-        model.init_combiner_to_last_layer()
-        # model.init_heads_to_identity()
-        
-        meta_embeddings = torch.tensor(np.load(meta_embed_init_file), dtype=torch.float32)
-        model.set_memory_embeddings(meta_embeddings)
 
     metric = PrecReclMrr(block.n_lbl, block.test.data_lbl_filterer, prop=block.train.dset.data.data_lbl,
                          pk=10, rk=200, rep_pk=[1, 3, 5, 10], rep_rk=[10, 100, 200], mk=[5, 10, 20])
