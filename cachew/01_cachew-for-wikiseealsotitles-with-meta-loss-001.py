@@ -4,7 +4,10 @@
 __all__ = []
 
 # %% ../nbs/01_cachew-for-wikiseealsotitles-with-meta-loss.ipynb 3
-import os,torch,json, torch.multiprocessing as mp, joblib, numpy as np, scipy.sparse as sp
+import os
+os.environ['HIP_VISIBLE_DEVICES'] = '4,5'
+
+import torch,json, torch.multiprocessing as mp, joblib, numpy as np, scipy.sparse as sp
 
 from xcai.main import *
 from xcai.basics import *
@@ -12,12 +15,12 @@ from xcai.basics import *
 from xcai.models.cachew import CAW002, CachewConfig
 
 # %% ../nbs/01_cachew-for-wikiseealsotitles-with-meta-loss.ipynb 5
-os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 os.environ['WANDB_PROJECT'] = 'cachew_00-wikiseealsotitles'
 
 # %% ../nbs/01_cachew-for-wikiseealsotitles-with-meta-loss.ipynb 7
 if __name__ == '__main__':
-    output_dir = '/home/aiscuser/scratch1/outputs/cachew/01_cachew-for-wikiseealsotitles-with-meta-loss-001'
+    # output_dir = '/home/aiscuser/scratch1/outputs/cachew/01_cachew-for-wikiseealsotitles-with-meta-loss-001'
+    output_dir = '/data/outputs/cachew/01_cachew-for-wikiseealsotitles-with-meta-loss-001'
 
     data_dir = '/data/datasets/benchmarks/'
     config_file = 'wikiseealsotitles'

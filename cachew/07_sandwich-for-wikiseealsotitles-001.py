@@ -141,8 +141,8 @@ if __name__ == '__main__':
         use_query_loss=False,
     
         use_meta_loss=True,
-        meta_loss_weight=0.1,
-        
+        meta_loss_weight=0.0,
+
         use_encoder_parallel=True,
     )
     
@@ -171,4 +171,4 @@ if __name__ == '__main__':
     )
     
     main(learn, input_args, n_lbl=block.n_lbl)
-    
+

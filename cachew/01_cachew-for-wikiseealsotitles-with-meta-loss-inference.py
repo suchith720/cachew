@@ -5,7 +5,7 @@ __all__ = []
 
 # %% ../nbs/01_cachew-for-wikiseealsotitles-with-meta-loss.ipynb 3
 import os
-os.environ['HIP_VISIBLE_DEVICES'] = '14,15'
+os.environ['HIP_VISIBLE_DEVICES'] = '4,5'
 
 import torch,json, torch.multiprocessing as mp, joblib, numpy as np, scipy.sparse as sp
 
@@ -19,7 +19,7 @@ os.environ['WANDB_PROJECT'] = 'cachew_00-wikiseealsotitles'
 
 # %% ../nbs/01_cachew-for-wikiseealsotitles-with-meta-loss.ipynb 7
 if __name__ == '__main__':
-    output_dir = '/data/outputs/cachew/01_cachew-for-wikiseealsotitles-with-meta-loss-005'
+    output_dir = '/home/aiscuser/scratch1/outputs/cachew/01_cachew-for-wikiseealsotitles-with-meta-loss-007'
 
     data_dir = '/data/datasets/benchmarks/'
     config_file = 'wikiseealsotitles'

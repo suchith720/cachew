@@ -17,7 +17,7 @@ os.environ['WANDB_PROJECT'] = 'cachew_00-wikiseealsotitles'
 
 # %% ../nbs/06_ngame-for-wikiseealsotitles-with-augmented-training.ipynb 22
 if __name__ == '__main__':
-    output_dir = '/home/aiscuser/scratch1/outputs/cachew/06_ngame-for-wikiseealsotitles-with-augmented-training-006'
+    output_dir = '/home/aiscuser/scratch1/outputs/cachew/06_ngame-for-wikiseealsotitles-with-augmented-training-010'
 
     data_dir = '/data/datasets/benchmarks/'
     config_file = 'wikiseealsotitles'
@@ -37,13 +37,12 @@ if __name__ == '__main__':
     os.makedirs(os.path.dirname(pkl_file), exist_ok=True)
     block = build_block(pkl_file, config_file, input_args.use_sxc_sampler, config_key, do_build=input_args.build_block, only_test=input_args.only_test, 
             data_dir=data_dir)
-    breakpoint()
 
     args = XCLearningArguments(
         output_dir=output_dir,
         logging_first_step=True,
-        per_device_train_batch_size=1024,
-        per_device_eval_batch_size=1024,
+        per_device_train_batch_size=800,
+        per_device_eval_batch_size=800,
         representation_num_beams=200,
         representation_accumulation_steps=10,
         save_strategy="steps",
@@ -93,8 +92,7 @@ if __name__ == '__main__':
     model = load_model(args.output_dir, model_fn, {"mname": mname, "bsz": bsz}, init_fn, do_inference=do_inference, 
                        use_pretrained=input_args.use_pretrained)
 
-    block.train.dset.get_random_walk_metadata(batch_size=1024, walk_to=10, prob_reset=0.8, thresh=10)
-    train_dset = block.train.dset.combined_lbl_and_meta(meta_name='rnw', p_data=0.8, use_main_distribution=True, main_oversample=True)
+    train_dset = block.train.dset.combine_data_and_meta(meta_name='cat')
     
     learn = XCLearner(
         model=model,
