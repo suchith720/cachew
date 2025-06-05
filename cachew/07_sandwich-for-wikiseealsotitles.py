@@ -35,44 +35,84 @@ if __name__ == '__main__':
     do_inference = input_args.do_train_inference or input_args.do_test_inference or input_args.save_train_prediction or input_args.save_test_prediction or input_args.save_representation
 
     os.makedirs(os.path.dirname(pkl_file), exist_ok=True)
-    block = build_block(pkl_file, config_file, input_args.use_sxc_sampler, config_key, do_build=input_args.build_block, only_test=input_args.only_test, data_dir=data_dir)
+    block = build_block(pkl_file, config_file, input_args.use_sxc_sampler, config_key, do_build=input_args.build_block, only_test=input_args.only_test, 
+                        n_slbl_samples=1, main_oversample=False, n_sdata_meta_samples=1, n_slbl_meta_samples=1, meta_oversample=False,
+                        data_dir=data_dir)
 
     args = XCLearningArguments(
         output_dir=output_dir,
         logging_first_step=True,
-        per_device_train_batch_size=1024,
-        per_device_eval_batch_size=1024,
+        per_device_train_batch_size=512,
+        per_device_eval_batch_size=512,
         representation_num_beams=200,
         representation_accumulation_steps=10,
         save_strategy="steps",
-        evaluation_strategy="steps",
+        eval_strategy="steps",
         eval_steps=5000,
         save_steps=5000,
         save_total_limit=5,
         num_train_epochs=300,
         predict_with_representation=True,
-        representation_search_type='BRUTEFORCE',
         adam_epsilon=1e-6,
         warmup_steps=100,
         weight_decay=0.01,
         learning_rate=2e-4,
+        representation_search_type='BRUTEFORCE',
     
+        output_representation_attribute='data_enriched_repr',
+        label_representation_attribute='data_enriced_repr',
+        metadata_representation_attribute='data_repr',
+        data_augmentation_attribute='data_repr',
+        representation_attribute='data_enriched_repr',
+        clustering_representation_attribute='data_enriched_repr',
+
         group_by_cluster=True,
         num_clustering_warmup_epochs=10,
         num_cluster_update_epochs=5,
         num_cluster_size_update_epochs=25,
+        use_data_metadata_for_clustering=True,
         clustering_type='EXPO',
         minimum_cluster_size=2,
         maximum_cluster_size=1600,
-    
+
         metric_for_best_model='P@1',
         load_best_model_at_end=True,
         target_indices_key='plbl2data_idx',
         target_pointer_key='plbl2data_data2ptr',
     
+        use_distributional_representation=False,
         use_encoder_parallel=True,
         max_grad_norm=None,
         fp16=True,
+    
+        label_names=[f'{meta_name}2data_input_ids', f'{meta_name}2data_attention_mask', f'{meta_name}2data_idx', 
+                     f'{meta_name}2data_data2ptr', f'p{meta_name}2data_idx', f'p{meta_name}2data_data2ptr',
+                     f'{meta_name}2lbl_input_ids', f'{meta_name}2lbl_attention_mask', f'{meta_name}2lbl_idx', 
+                     f'{meta_name}2lbl_lbl2ptr', f'p{meta_name}2lbl_idx', f'p{meta_name}2lbl_lbl2ptr'],
+
+        data_aug_prefix=meta_name,
+        use_label_metadata=True,
+                     
+        prune_metadata=False,
+        num_metadata_prune_warmup_epochs=10,
+        num_metadata_prune_epochs=5,
+        metadata_prune_batch_size=2048,
+        prune_metadata_names=[f'{meta_name}_meta'],
+        use_data_metadata_for_pruning=True,
+    
+        predict_with_augmentation=False,
+        use_augmentation_index_representation=True,
+
+        data_aug_meta_name=meta_name,
+        augmentation_num_beams=None,
+        
+        data_meta_batch_size=2048,
+        augment_metadata=False,
+        num_metadata_augment_warmup_epochs=10,
+        num_metadata_augment_epochs=5,
+    
+        use_cpu_for_searching=True,
+        use_cpu_for_clustering=True,
     )
 
     bsz = max(args.per_device_train_batch_size, args.per_device_eval_batch_size)*torch.cuda.device_count()
