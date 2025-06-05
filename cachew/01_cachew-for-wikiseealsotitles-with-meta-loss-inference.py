@@ -19,14 +19,11 @@ os.environ['WANDB_PROJECT'] = 'cachew_00-wikiseealsotitles'
 
 # %% ../nbs/01_cachew-for-wikiseealsotitles-with-meta-loss.ipynb 7
 if __name__ == '__main__':
-    # output_dir = '/home/aiscuser/scratch1/outputs/cachew/01_cachew-for-wikiseealsotitles-with-meta-loss-002'
-    output_dir = '/data/outputs/cachew/01_cachew-for-wikiseealsotitles-with-meta-loss-002'
+    output_dir = '/home/aiscuser/scratch1/outputs/cachew/01_cachew-for-wikiseealsotitles-with-meta-loss-007'
 
     data_dir = '/data/datasets/benchmarks/'
     config_file = 'wikiseealsotitles'
     config_key = 'data_meta'
-    
-    meta_embed_init_file = '/data/datasets/ogb_weights/LF-WikiSeeAlsoTitles-320K/emb_weights.npy'
     
     meta_name = 'cat'
 
@@ -132,25 +129,22 @@ if __name__ == '__main__':
         tau=0.1,
         apply_softmax=True,
     
-        calib_margin=0.3,
+        calib_margin=0.05,
         calib_num_negatives=10,
         calib_tau=0.1,
         calib_apply_softmax=False,
         calib_loss_weight=0.1,
         use_calib_loss=True,
 
-        meta_loss_weight=0.5,
+        meta_loss_weight=1.0,
         use_meta_loss=True,
     
         use_query_loss=True, 
         use_encoder_parallel=True
     )
     
-    model = CAW002.from_pretrained('sentence-transformers/msmarco-distilbert-base-v4', config=config)
-    model.init_combiner_to_last_layer()
-    
-    meta_embeddings = torch.tensor(np.load(meta_embed_init_file), dtype=torch.float32)
-    model.set_memory_embeddings(meta_embeddings)
+    mname = f'{output_dir}/{os.path.basename(get_best_model(output_dir))}'
+    model = CAW002.from_pretrained(mname, config=config)
 
     metric = PrecReclMrr(block.n_lbl, block.test.data_lbl_filterer, prop=block.train.dset.data.data_lbl,
                          pk=10, rk=200, rep_pk=[1, 3, 5, 10], rep_rk=[10, 100, 200], mk=[5, 10, 20])

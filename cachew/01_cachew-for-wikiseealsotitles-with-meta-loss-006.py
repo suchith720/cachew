@@ -4,23 +4,30 @@
 __all__ = []
 
 # %% ../nbs/01_cachew-for-wikiseealsotitles-with-meta-loss.ipynb 3
-import os
-os.environ['HIP_VISIBLE_DEVICES'] = '4,5'
-
-import torch,json, torch.multiprocessing as mp, joblib, numpy as np, scipy.sparse as sp
+import os,torch,json, torch.multiprocessing as mp, joblib, numpy as np, scipy.sparse as sp
 
 from xcai.main import *
 from xcai.basics import *
 
 from xcai.models.cachew import CAW002, CachewConfig
 
+from torch.serialization import add_safe_globals
+from numpy.core.multiarray import _reconstruct
+
+from numpy import generic, ndarray
+add_safe_globals([_reconstruct])
+add_safe_globals([np.ndarray])
+add_safe_globals([np.dtype])
+add_safe_globals([generic, ndarray])
+add_safe_globals([np.dtypes.UInt32DType])
+
 # %% ../nbs/01_cachew-for-wikiseealsotitles-with-meta-loss.ipynb 5
+os.environ['CUDA_VISIBLE_DEVICES'] = '2,3'
 os.environ['WANDB_PROJECT'] = 'cachew_00-wikiseealsotitles'
 
 # %% ../nbs/01_cachew-for-wikiseealsotitles-with-meta-loss.ipynb 7
 if __name__ == '__main__':
-    # output_dir = '/home/aiscuser/scratch1/outputs/cachew/01_cachew-for-wikiseealsotitles-with-meta-loss-002'
-    output_dir = '/data/outputs/cachew/01_cachew-for-wikiseealsotitles-with-meta-loss-002'
+    output_dir = '/home/aiscuser/scratch1/outputs/cachew/01_cachew-for-wikiseealsotitles-with-meta-loss-006'
 
     data_dir = '/data/datasets/benchmarks/'
     config_file = 'wikiseealsotitles'
@@ -132,14 +139,14 @@ if __name__ == '__main__':
         tau=0.1,
         apply_softmax=True,
     
-        calib_margin=0.3,
+        calib_margin=0.05,
         calib_num_negatives=10,
         calib_tau=0.1,
         calib_apply_softmax=False,
         calib_loss_weight=0.1,
         use_calib_loss=True,
 
-        meta_loss_weight=0.5,
+        meta_loss_weight=0.1,
         use_meta_loss=True,
     
         use_query_loss=True, 
@@ -166,5 +173,5 @@ if __name__ == '__main__':
 
     if do_inference: os.environ['WANDB_MODE'] = 'disabled'
     
-    main(learn, input_args, n_lbl=block.n_lbl)
+    main(learn, input_args, n_lbl=block.n_lbl, resume_from_checkpoint=True)
     
