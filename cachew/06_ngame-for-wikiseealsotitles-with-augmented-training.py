@@ -17,28 +17,37 @@ os.environ['WANDB_PROJECT'] = 'cachew_00-wikiseealsotitles'
 
 # %% ../nbs/06_ngame-for-wikiseealsotitles-with-augmented-training.ipynb 23
 from tqdm.auto import tqdm
+from typing import Optional
+
+from xclib.utils.sparse import retain_topk
 
 from xcai.sdata import SXCDataset
 from xcai.graph.operations import *
 
 # %% ../nbs/06_ngame-for-wikiseealsotitles-with-augmented-training.ipynb 24
-def get_lbl_lbl_metadata(block, meta_name:str, batch_size:int=1024, topk:int=10, do_normalize:bool=True):
+def get_lbl_lbl_metadata(block, meta_name:str, thresh:Optional[int]=10, batch_size:Optional[int]=1024, 
+                         topk:Optional[int]=10, do_normalize:Optional[bool]=True):
     if f'{meta_name}_meta' not in block.train.dset.meta: raise ValueError(f'Invalid metadata: {meta_name}')
+
+    lbl_meta = block.train.dset.meta[f'{meta_name}_meta'].lbl_meta
+    lbl_meta = Graph.threshold_on_degree(lbl_meta, thresh=thresh)
     
-    meta_lbl = block.train.dset.meta[f'{meta_name}_meta'].lbl_meta.transpose().tocsr()
+    meta_lbl = lbl_meta.transpose().tocsr()
     meta_lbl, lbl_lbl = Graph.one_hop_matrix(meta_lbl, batch_size=batch_size, topk=topk, do_normalize=do_normalize)
 
     return SXCDataset.get_combined_data_and_meta(block.train.dset, lbl_lbl, block.lbl_info)
     
 
 # %% ../nbs/06_ngame-for-wikiseealsotitles-with-augmented-training.ipynb 25
-def get_data_lbl_metadata(block, meta_name:str, batch_size:int=1024):
+def get_data_lbl_metadata(block, meta_name:str, batch_size:Optional[int]=1024, topk:Optional[int]=10):
     if f'{meta_name}_meta' not in block.train.dset.meta: raise ValueError(f'Invalid metadata: {meta_name}')
         
     data_meta = block.train.dset.meta[f'{meta_name}_meta'].data_meta
     meta_lbl = block.train.dset.meta[f'{meta_name}_meta'].lbl_meta.transpose().tocsr()
 
     data_lbl = sp.vstack([data_meta[i:i+batch_size] @ meta_lbl for i in tqdm(range(0, data_meta.shape[0], batch_size))])
+
+    if topk is not None: data_lbl = retain_topk(data_lbl, k=topk)
     
     return SXCDataset.get_combined_data_and_meta(block.train.dset, data_lbl, block.train.dset.data.data_info)
     
