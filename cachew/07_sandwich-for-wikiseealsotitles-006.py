@@ -11,15 +11,14 @@ os.environ['HIP_VISIBLE_DEVICES'] = '4,5,6,7'
 import torch,json, torch.multiprocessing as mp, joblib, numpy as np, scipy.sparse as sp
 
 from xcai.basics import *
-from xcai.models.sandwich import SAW001, SandwichConfig
+from xcai.models.sandwich import SAW002, SandwichConfig
 
 # %% ../nbs/07_sandwich-for-wikiseealsotitles.ipynb 5
 os.environ['WANDB_PROJECT'] = 'sandwich_00-wikiseealsotitles'
 
 # %% ../nbs/07_sandwich-for-wikiseealsotitles.ipynb 7
 if __name__ == '__main__':
-    # output_dir = '/home/aiscuser/scratch1/outputs/sandwich/07_sandwich-for-wikiseealsotitles-004'
-    output_dir = '/data/outputs/sandwich/07_sandwich-for-wikiseealsotitles-004'
+    output_dir = '/home/aiscuser/scratch1/outputs/sandwich/07_sandwich-for-wikiseealsotitles-006'
 
     data_dir = '/data/datasets/benchmarks/'
     config_file = 'wikiseealsotitles'
@@ -51,15 +50,15 @@ if __name__ == '__main__':
         representation_accumulation_steps=10,
         save_strategy="steps",
         eval_strategy="steps",
-        eval_steps=500, # 5000,
-        save_steps=500, # 5000,
+        eval_steps=5000,
+        save_steps=5000,
         save_total_limit=5,
         num_train_epochs=300,
         predict_with_representation=True,
         adam_epsilon=1e-6,
         warmup_steps=100,
         weight_decay=0.01,
-        learning_rate=2e-4,
+        learning_rate=2e-5,
         representation_search_type='BRUTEFORCE',
     
         representation_attribute='data_enriched_repr',
@@ -85,7 +84,7 @@ if __name__ == '__main__':
     
         use_distributional_representation=False,
         use_encoder_parallel=True,
-        max_grad_norm=None,
+        max_grad_norm=1.0,
         fp16=True,
     
         label_names=[f'{meta_name}2data_input_ids', f'{meta_name}2data_attention_mask', f'{meta_name}2data_idx', f'{meta_name}2data_data2ptr', 
@@ -134,8 +133,8 @@ if __name__ == '__main__':
         apply_softmax=True,
     
         use_calib_loss=True,
-        calib_loss_weight=1.0,
-        calib_margin=0.05,
+        calib_loss_weight=0.1,
+        calib_margin=0.3,
         calib_num_negatives=10,
         calib_tau=0.1,
         calib_apply_softmax=False,
@@ -149,13 +148,13 @@ if __name__ == '__main__':
     )
     
     def model_fn(mname):
-        model = SAW001.from_pretrained(mname, config=config)
+        model = SAW002.from_pretrained(mname, config=config)
         return model
     
     def init_fn(model):
         model.init_meta_distilbert()
         model.init_heads_to_identity()
-        model.init_combiner_to_last_layer()
+        model.init_combiner_to_identity()
 
     metric = PrecReclMrr(block.n_lbl, block.test.data_lbl_filterer, prop=block.train.dset.data.data_lbl,
                          pk=10, rk=200, rep_pk=[1, 3, 5, 10], rep_rk=[10, 100, 200], mk=[5, 10, 20])

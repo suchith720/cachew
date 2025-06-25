@@ -23,8 +23,10 @@ if __name__ == '__main__':
     output_dir = '/data/outputs/cachew/04_oak-for-wikiseealsotitles-001'
 
     data_dir = '/data/datasets/benchmarks/'
-    config_file = 'wikiseealsotitles'
-    config_key = 'data_lnk'
+    # config_file = 'wikiseealsotitles'
+    # config_key = 'data_lnk'
+    config_file = '/data/datasets/benchmarks/(mapped)LF-WikiSeeAlsoTitles-320K/configs/data_category_sandwich-linker.json'
+    config_key = 'data_category_linker'
     
     meta_embed_init_file = '/data/datasets/ogb_weights/LF-WikiSeeAlsoTitles-320K/emb_weights.npy'
     
@@ -32,7 +34,9 @@ if __name__ == '__main__':
 
     input_args = parse_args()
 
-    pkl_file = f'{input_args.pickle_dir}/cachew/wikiseealsotitles_data-lnk_distilbert-base-uncased'
+    # pkl_file = f'{input_args.pickle_dir}/cachew/wikiseealsotitles_data-lnk_distilbert-base-uncased'
+    pkl_file = f'{input_args.pickle_dir}/cachew/wikiseealsotitles_data-category-sandwich-linker_distilbert-base-uncased'
+
     pkl_file = f'{pkl_file}_sxc' if input_args.use_sxc_sampler else f'{pkl_file}_xcs'
     if input_args.only_test: pkl_file = f'{pkl_file}_only-test'
     pkl_file = f'{pkl_file}.joblib'

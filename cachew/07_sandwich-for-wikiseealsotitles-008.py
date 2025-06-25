@@ -5,21 +5,89 @@ __all__ = []
 
 # %% ../nbs/07_sandwich-for-wikiseealsotitles.ipynb 3
 import os
-# os.environ['HIP_VISIBLE_DEVICES'] = '0,1,2,3'
 os.environ['HIP_VISIBLE_DEVICES'] = '4,5,6,7'
 
 import torch,json, torch.multiprocessing as mp, joblib, numpy as np, scipy.sparse as sp
 
 from xcai.basics import *
-from xcai.models.sandwich import SAW001, SandwichConfig
+from xcai.models.sandwich import SAW002, SandwichConfig
 
 # %% ../nbs/07_sandwich-for-wikiseealsotitles.ipynb 5
 os.environ['WANDB_PROJECT'] = 'sandwich_00-wikiseealsotitles'
 
+from fastcore.utils import *
+from typing import Optional
+
+from xcai.models.sandwich import EncoderOutput, Parameters, SAWModelOutput
+from xcai.learner import XCDataParallel
+
+@patch
+def forward(
+    self:SAW002,
+    data_input_ids:Optional[torch.Tensor]=None,
+    data_attention_mask:Optional[torch.Tensor]=None,
+    lbl2data_data2ptr:Optional[torch.Tensor]=None,
+    lbl2data_idx:Optional[torch.Tensor]=None,
+    lbl2data_input_ids:Optional[torch.Tensor]=None,
+    lbl2data_attention_mask:Optional[torch.Tensor]=None,
+    plbl2data_data2ptr:Optional[torch.Tensor]=None,
+    plbl2data_idx:Optional[torch.Tensor]=None,
+    output_attentions: Optional[bool] = None,
+    output_hidden_states: Optional[bool] = None,
+    return_dict: Optional[bool] = None,
+    **kwargs
+): 
+    return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+    
+    if self.config.use_encoder_parallel: 
+        encoder = XCDataParallel(module=self.encoder)
+    else: encoder = self.encoder
+    
+    data_meta_kwargs = Parameters.from_aug_meta_prefix_for_feature('data', self.config.data_aug_meta_prefix, **kwargs)
+    data_o = encoder(data_input_ids=data_input_ids, data_attention_mask=data_attention_mask, 
+                     data_aug_meta_prefix=self.config.data_aug_meta_prefix, data_enrich=self.config.data_enrich, **data_meta_kwargs)
+    
+    loss = None; lbl2data_o = EncoderOutput()
+    if lbl2data_input_ids is not None:
+        lbl2data_meta_kwargs = Parameters.from_aug_meta_prefix_for_feature('lbl', self.config.lbl2data_aug_meta_prefix, **kwargs)
+        lbl2data_o = encoder(data_input_ids=lbl2data_input_ids, data_attention_mask=lbl2data_attention_mask, 
+                             data_aug_meta_prefix=self.config.lbl2data_aug_meta_prefix, data_enrich=self.config.lbl2data_enrich, **lbl2data_meta_kwargs)
+        
+        loss = self.compute_loss(data_o.enriched_data_repr, lbl2data_o.data_repr,lbl2data_data2ptr,lbl2data_idx,
+                                 plbl2data_data2ptr,plbl2data_idx)
+
+        if self.config.use_query_loss:
+            loss += self.compute_loss(data_o.data_repr, lbl2data_o.data_repr,lbl2data_data2ptr,lbl2data_idx, plbl2data_data2ptr,plbl2data_idx)
+
+        if self.config.use_calib_loss:
+            if self.config.data_enrich:
+                loss += self.calibration_loss(data_o.enriched_data_repr, data_o.data_repr, lbl2data_o.data_repr, 
+                        lbl2data_data2ptr,lbl2data_idx,plbl2data_data2ptr,plbl2data_idx)
+
+            if self.config.lbl2data_enrich:
+                loss += self.calibration_loss(data_o.enriched_data_repr, data_o.data_repr, lbl2data_o.enriched_data_repr,
+                        lbl2data_data2ptr,lbl2data_idx, plbl2data_data2ptr,plbl2data_idx)
+
+        if self.config.use_meta_loss:
+            loss += self.compute_meta_loss(data_o, lbl2data_o, **kwargs)
+        
+    if not return_dict:
+        o = (data_o.data_repr,data_o.enriched_data_repr,lbl2data_o.data_repr,lbl2data_o.enriched_data_repr)
+        return ((loss,) + o) if loss is not None else o
+    
+    return SAWModelOutput(
+        loss=loss,
+        data_repr=data_o.data_repr,
+        data_enriched_repr=data_o.enriched_data_repr,
+        data_meta_repr=data_o.meta_repr,
+        lbl2data_repr=lbl2data_o.data_repr,
+        lbl2data_enriched_repr=lbl2data_o.enriched_data_repr,
+        lbl2data_meta_repr=lbl2data_o.meta_repr,
+    )
+
 # %% ../nbs/07_sandwich-for-wikiseealsotitles.ipynb 7
 if __name__ == '__main__':
-    # output_dir = '/home/aiscuser/scratch1/outputs/sandwich/07_sandwich-for-wikiseealsotitles-004'
-    output_dir = '/data/outputs/sandwich/07_sandwich-for-wikiseealsotitles-004'
+    output_dir = '/home/aiscuser/scratch1/outputs/sandwich/07_sandwich-for-wikiseealsotitles-008'
 
     data_dir = '/data/datasets/benchmarks/'
     config_file = 'wikiseealsotitles'
@@ -51,15 +119,15 @@ if __name__ == '__main__':
         representation_accumulation_steps=10,
         save_strategy="steps",
         eval_strategy="steps",
-        eval_steps=500, # 5000,
-        save_steps=500, # 5000,
+        eval_steps=5000,
+        save_steps=5000,
         save_total_limit=5,
         num_train_epochs=300,
         predict_with_representation=True,
         adam_epsilon=1e-6,
         warmup_steps=100,
         weight_decay=0.01,
-        learning_rate=2e-4,
+        learning_rate=2e-5,
         representation_search_type='BRUTEFORCE',
     
         representation_attribute='data_enriched_repr',
@@ -85,12 +153,11 @@ if __name__ == '__main__':
     
         use_distributional_representation=False,
         use_encoder_parallel=True,
-        max_grad_norm=None,
+        max_grad_norm=1.0,
         fp16=True,
     
         label_names=[f'{meta_name}2data_input_ids', f'{meta_name}2data_attention_mask', f'{meta_name}2data_idx', f'{meta_name}2data_data2ptr', 
-            f'p{meta_name}2data_idx', f'p{meta_name}2data_data2ptr', f'{meta_name}2lbl_input_ids', f'{meta_name}2lbl_attention_mask', 
-            f'{meta_name}2lbl_idx', f'{meta_name}2lbl_lbl2ptr', f'p{meta_name}2lbl_idx', f'p{meta_name}2lbl_lbl2ptr'],
+            f'p{meta_name}2data_idx', f'p{meta_name}2data_data2ptr'], 
 
         data_aug_prefix=meta_name,
         use_label_metadata=True,
@@ -121,10 +188,10 @@ if __name__ == '__main__':
     
     config = SandwichConfig(
         data_aug_meta_prefix=f'{meta_name}2data', 
-        lbl2data_aug_meta_prefix=f'{meta_name}2lbl',
+        lbl2data_aug_meta_prefix=None,
     
         data_enrich=True,
-        lbl2data_enrich=True,
+        lbl2data_enrich=False,
     
         batch_size=bsz, 
         num_batch_labels=5000, 
@@ -134,7 +201,7 @@ if __name__ == '__main__':
         apply_softmax=True,
     
         use_calib_loss=True,
-        calib_loss_weight=1.0,
+        calib_loss_weight=0.1,
         calib_margin=0.05,
         calib_num_negatives=10,
         calib_tau=0.1,
@@ -149,13 +216,13 @@ if __name__ == '__main__':
     )
     
     def model_fn(mname):
-        model = SAW001.from_pretrained(mname, config=config)
+        model = SAW002.from_pretrained(mname, config=config)
         return model
     
     def init_fn(model):
         model.init_meta_distilbert()
         model.init_heads_to_identity()
-        model.init_combiner_to_last_layer()
+        model.init_combiner_to_identity()
 
     metric = PrecReclMrr(block.n_lbl, block.test.data_lbl_filterer, prop=block.train.dset.data.data_lbl,
                          pk=10, rk=200, rep_pk=[1, 3, 5, 10], rep_rk=[10, 100, 200], mk=[5, 10, 20])

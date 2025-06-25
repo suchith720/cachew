@@ -5,33 +5,31 @@ __all__ = []
 
 # %% ../nbs/07_sandwich-for-wikiseealsotitles.ipynb 3
 import os
-# os.environ['HIP_VISIBLE_DEVICES'] = '0,1,2,3'
-os.environ['HIP_VISIBLE_DEVICES'] = '4,5,6,7'
+os.environ['HIP_VISIBLE_DEVICES'] = '8,9,10,11'
 
 import torch,json, torch.multiprocessing as mp, joblib, numpy as np, scipy.sparse as sp
 
 from xcai.basics import *
-from xcai.models.sandwich import SAW001, SandwichConfig
+from xcai.models.sandwich import SAW002, SandwichConfig
 
 # %% ../nbs/07_sandwich-for-wikiseealsotitles.ipynb 5
 os.environ['WANDB_PROJECT'] = 'sandwich_00-wikiseealsotitles'
 
 # %% ../nbs/07_sandwich-for-wikiseealsotitles.ipynb 7
 if __name__ == '__main__':
-    # output_dir = '/home/aiscuser/scratch1/outputs/sandwich/07_sandwich-for-wikiseealsotitles-004'
-    output_dir = '/data/outputs/sandwich/07_sandwich-for-wikiseealsotitles-004'
+    output_dir = '/home/aiscuser/scratch1/outputs/sandwich/07_sandwich-for-wikiseealsotitles-012'
 
     data_dir = '/data/datasets/benchmarks/'
     config_file = 'wikiseealsotitles'
-    config_key = 'data_meta'
+    config_key = 'data_hlk'
     
     mname = 'sentence-transformers/msmarco-distilbert-base-v4'
 
-    meta_name = 'cat'
+    meta_name = 'hlk'
 
     input_args = parse_args()
 
-    pkl_file = f'{input_args.pickle_dir}/sandwich/wikiseealsotitles_data-meta_distilbert-base-uncased'
+    pkl_file = f'{input_args.pickle_dir}/sandwich/wikiseealsotitles_data-hlk_distilbert-base-uncased'
     pkl_file = f'{pkl_file}_sxc' if input_args.use_sxc_sampler else f'{pkl_file}_xcs'
     if input_args.only_test: pkl_file = f'{pkl_file}_only-test'
     pkl_file = f'{pkl_file}.joblib'
@@ -51,20 +49,26 @@ if __name__ == '__main__':
         representation_accumulation_steps=10,
         save_strategy="steps",
         eval_strategy="steps",
-        eval_steps=500, # 5000,
-        save_steps=500, # 5000,
+        eval_steps=5000,
+        save_steps=5000,
         save_total_limit=5,
         num_train_epochs=300,
         predict_with_representation=True,
         adam_epsilon=1e-6,
         warmup_steps=100,
         weight_decay=0.01,
-        learning_rate=2e-4,
+        learning_rate=2e-5,
         representation_search_type='BRUTEFORCE',
     
         representation_attribute='data_enriched_repr',
+        # representation_attribute='data_data_meta_repr',
+
         output_representation_attribute='data_enriched_repr',
+        # output_representation_attribute='data_data_meta_repr',
+
         label_representation_attribute='data_enriched_repr',
+        # label_representation_attribute='data_data_meta_repr',
+
         clustering_representation_attribute='data_enriched_repr',
         data_augmentation_attribute='data_repr',
         metadata_representation_attribute='data_repr',
@@ -85,7 +89,7 @@ if __name__ == '__main__':
     
         use_distributional_representation=False,
         use_encoder_parallel=True,
-        max_grad_norm=None,
+        max_grad_norm=True,
         fp16=True,
     
         label_names=[f'{meta_name}2data_input_ids', f'{meta_name}2data_attention_mask', f'{meta_name}2data_idx', f'{meta_name}2data_data2ptr', 
@@ -133,8 +137,8 @@ if __name__ == '__main__':
         tau=0.1,
         apply_softmax=True,
     
-        use_calib_loss=True,
-        calib_loss_weight=1.0,
+        use_calib_loss=False,
+        calib_loss_weight=0.1,
         calib_margin=0.05,
         calib_num_negatives=10,
         calib_tau=0.1,
@@ -149,19 +153,19 @@ if __name__ == '__main__':
     )
     
     def model_fn(mname):
-        model = SAW001.from_pretrained(mname, config=config)
+        model = SAW002.from_pretrained(mname, config=config)
         return model
     
     def init_fn(model):
         model.init_meta_distilbert()
         model.init_heads_to_identity()
-        model.init_combiner_to_last_layer()
+        model.init_combiner_to_identity()
+
+    model = load_model(args.output_dir, model_fn, {"mname": mname}, init_fn, do_inference=do_inference, 
+                       use_pretrained=input_args.use_pretrained)
 
     metric = PrecReclMrr(block.n_lbl, block.test.data_lbl_filterer, prop=block.train.dset.data.data_lbl,
                          pk=10, rk=200, rep_pk=[1, 3, 5, 10], rep_rk=[10, 100, 200], mk=[5, 10, 20])
-    
-    model = load_model(args.output_dir, model_fn, {"mname": mname}, init_fn, do_inference=do_inference, 
-                       use_pretrained=input_args.use_pretrained)
     
     learn = XCLearner(
         model=model,
@@ -173,4 +177,24 @@ if __name__ == '__main__':
     )
     
     main(learn, input_args, n_lbl=block.n_lbl)
+
+    # linker_block = block.linker_dset('cat_meta', remove_empty=True)
+    # metric = PrecReclMrr(linker_block.n_lbl, linker_block.test.data_lbl_filterer, prop=linker_block.train.dset.data.data_lbl,
+    #                      pk=10, rk=200, rep_pk=[1, 3, 5, 10], rep_rk=[10, 100, 200], mk=[5, 10, 20])
+
+    # test_dset = block.inference_dset(linker_block.test.dset.data.data_info, linker_block.test.dset.data.data_lbl, linker_block.test.dset.data.lbl_info, 
+    #         linker_block.test.dset.data.data_lbl_filterer)
+    # metric = PrecReclMrr(test_dset.data.n_lbl, test_dset.data.data_lbl_filterer, prop=linker_block.train.dset.data.data_lbl,
+    #                      pk=10, rk=200, rep_pk=[1, 3, 5, 10], rep_rk=[10, 100, 200], mk=[5, 10, 20])
+
+    # learn = XCLearner(
+    #     model=model,
+    #     args=args,
+    #     train_dataset=linker_block.train.dset,
+    #     eval_dataset=test_dset,
+    #     data_collator=linker_block.collator,
+    #     compute_metrics=metric,
+    # )
+
+    # main(learn, input_args, n_lbl=linker_block.n_lbl)
 

@@ -5,21 +5,19 @@ __all__ = []
 
 # %% ../nbs/07_sandwich-for-wikiseealsotitles.ipynb 3
 import os
-# os.environ['HIP_VISIBLE_DEVICES'] = '0,1,2,3'
 os.environ['HIP_VISIBLE_DEVICES'] = '4,5,6,7'
 
 import torch,json, torch.multiprocessing as mp, joblib, numpy as np, scipy.sparse as sp
 
 from xcai.basics import *
-from xcai.models.sandwich import SAW001, SandwichConfig
+from xcai.models.sandwich import SAW003, SandwichConfig
 
 # %% ../nbs/07_sandwich-for-wikiseealsotitles.ipynb 5
 os.environ['WANDB_PROJECT'] = 'sandwich_00-wikiseealsotitles'
 
 # %% ../nbs/07_sandwich-for-wikiseealsotitles.ipynb 7
 if __name__ == '__main__':
-    # output_dir = '/home/aiscuser/scratch1/outputs/sandwich/07_sandwich-for-wikiseealsotitles-004'
-    output_dir = '/data/outputs/sandwich/07_sandwich-for-wikiseealsotitles-004'
+    output_dir = '/home/aiscuser/scratch1/outputs/sandwich/07_sandwich-for-wikiseealsotitles-013'
 
     data_dir = '/data/datasets/benchmarks/'
     config_file = 'wikiseealsotitles'
@@ -51,8 +49,8 @@ if __name__ == '__main__':
         representation_accumulation_steps=10,
         save_strategy="steps",
         eval_strategy="steps",
-        eval_steps=500, # 5000,
-        save_steps=500, # 5000,
+        eval_steps=5000,
+        save_steps=5000,
         save_total_limit=5,
         num_train_epochs=300,
         predict_with_representation=True,
@@ -133,8 +131,8 @@ if __name__ == '__main__':
         tau=0.1,
         apply_softmax=True,
     
-        use_calib_loss=True,
-        calib_loss_weight=1.0,
+        use_calib_loss=False,
+        calib_loss_weight=0.1,
         calib_margin=0.05,
         calib_num_negatives=10,
         calib_tau=0.1,
@@ -149,19 +147,19 @@ if __name__ == '__main__':
     )
     
     def model_fn(mname):
-        model = SAW001.from_pretrained(mname, config=config)
+        model = SAW003.from_pretrained(mname, config=config)
         return model
     
     def init_fn(model):
         model.init_meta_distilbert()
         model.init_heads_to_identity()
-        model.init_combiner_to_last_layer()
+        model.init_combiner_to_identity()
+
+    model = load_model(args.output_dir, model_fn, {"mname": mname}, init_fn, do_inference=do_inference, 
+                       use_pretrained=input_args.use_pretrained)
 
     metric = PrecReclMrr(block.n_lbl, block.test.data_lbl_filterer, prop=block.train.dset.data.data_lbl,
                          pk=10, rk=200, rep_pk=[1, 3, 5, 10], rep_rk=[10, 100, 200], mk=[5, 10, 20])
-    
-    model = load_model(args.output_dir, model_fn, {"mname": mname}, init_fn, do_inference=do_inference, 
-                       use_pretrained=input_args.use_pretrained)
     
     learn = XCLearner(
         model=model,
@@ -173,4 +171,29 @@ if __name__ == '__main__':
     )
     
     main(learn, input_args, n_lbl=block.n_lbl)
+
+    # linker_block = block.linker_dset('cat_meta', remove_empty=True)
+    # metric = PrecReclMrr(linker_block.n_lbl, linker_block.test.data_lbl_filterer, prop=linker_block.train.dset.data.data_lbl,
+    #                      pk=10, rk=200, rep_pk=[1, 3, 5, 10], rep_rk=[10, 100, 200], mk=[5, 10, 20])
+
+    # linker_block = block.linker_dset(f'{meta_name}_meta', remove_empty=False)
+
+    # train_dset = block.inference_dset(linker_block.train.dset.data.data_info, linker_block.train.dset.data.data_lbl, linker_block.train.dset.data.lbl_info, 
+    #         linker_block.train.dset.data.data_lbl_filterer)
+    # test_dset = block.inference_dset(linker_block.test.dset.data.data_info, linker_block.test.dset.data.data_lbl, linker_block.test.dset.data.lbl_info, 
+    #         linker_block.test.dset.data.data_lbl_filterer)
+
+    # metric = PrecReclMrr(test_dset.data.n_lbl, test_dset.data.data_lbl_filterer, prop=linker_block.train.dset.data.data_lbl,
+    #                      pk=10, rk=200, rep_pk=[1, 3, 5, 10], rep_rk=[10, 100, 200], mk=[5, 10, 20])
+
+    # learn = XCLearner(
+    #     model=model,
+    #     args=args,
+    #     train_dataset=train_dset,
+    #     eval_dataset=test_dset,
+    #     data_collator=linker_block.collator,
+    #     compute_metrics=metric,
+    # )
+
+    # main(learn, input_args, n_lbl=test_dset.data.n_lbl, eval_k=10, train_k=10)
 
