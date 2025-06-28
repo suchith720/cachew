@@ -5,7 +5,7 @@ __all__ = ['fill_matrix', 'swap_lbl_and_meta']
 
 # %% ../nbs/08_sandwich-with-switched-roles-for-wikiseealsotitles.ipynb 3
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '8,9,10,11'
+os.environ['CUDA_VISIBLE_DEVICES'] = '12,13,14,15'
 
 import torch,json, torch.multiprocessing as mp, joblib, numpy as np, scipy.sparse as sp
 
@@ -114,7 +114,7 @@ if __name__ == '__main__':
 
     os.makedirs(os.path.dirname(pkl_file), exist_ok=True)
     block = build_block(pkl_file, config_file, input_args.use_sxc_sampler, config_key, do_build=input_args.build_block, only_test=input_args.only_test, 
-                        n_slbl_samples=1, main_oversample=False, n_sdata_meta_samples=4, n_slbl_meta_samples=4, meta_oversample=False, data_dir=data_dir)
+                        n_slbl_samples=1, main_oversample=False, n_sdata_meta_samples=1, n_slbl_meta_samples=1, meta_oversample=False, data_dir=data_dir)
 
     args = XCLearningArguments(
         output_dir=output_dir,
@@ -136,9 +136,14 @@ if __name__ == '__main__':
         learning_rate=2e-4,
         representation_search_type='BRUTEFORCE',
     
-        representation_attribute='data_enriched_repr',
-        output_representation_attribute='data_enriched_repr',
-        label_representation_attribute='data_enriched_repr',
+        # representation_attribute='data_enriched_repr',
+        # output_representation_attribute='data_enriched_repr',
+        # label_representation_attribute='data_enriched_repr',
+
+        representation_attribute='data_data_meta_repr',
+        output_representation_attribute='data_data_meta_repr',
+        label_representation_attribute='data_data_meta_repr',
+
         clustering_representation_attribute='data_enriched_repr',
         metadata_representation_attribute='data_repr',
         data_augmentation_attribute='data_repr',
@@ -234,24 +239,38 @@ if __name__ == '__main__':
     model = load_model(args.output_dir, model_fn, {"mname": mname}, init_fn, do_inference=do_inference, 
                        use_pretrained=input_args.use_pretrained)
 
-    train_dset = swap_lbl_and_meta(block.train.dset, swap_meta_name, thresh=20, batch_size=1024, topk=10)
-    valid_idx = np.where(train_dset.data.data_lbl.getnnz(axis=1) > 0)[0]
-    train_dset = train_dset._getitems(valid_idx)
+    # train_dset = swap_lbl_and_meta(block.train.dset, swap_meta_name, thresh=20, batch_size=1024, topk=10)
+    # valid_idx = np.where(train_dset.data.data_lbl.getnnz(axis=1) > 0)[0]
+    # train_dset = train_dset._getitems(valid_idx)
 
-    test_dset = swap_lbl_and_meta(block.test.dset, swap_meta_name, thresh=20, batch_size=1024, topk=10, perform_aug=False, fill_empty=False)
+    # test_dset = swap_lbl_and_meta(block.test.dset, swap_meta_name, thresh=20, batch_size=1024, topk=10, perform_aug=False, fill_empty=False)
 
-    n_lbl = test_dset.data.n_lbl
-    metric = PrecReclMrr(n_lbl, test_dset.data.data_lbl_filterer, prop=train_dset.data.data_lbl[:, :n_lbl],
+    # n_lbl = test_dset.data.n_lbl
+    # metric = PrecReclMrr(n_lbl, test_dset.data.data_lbl_filterer, prop=train_dset.data.data_lbl[:, :n_lbl],
+    #                      pk=10, rk=200, rep_pk=[1, 3, 5, 10], rep_rk=[10, 100, 200], mk=[5, 10, 20])
+
+    # learn = XCLearner(
+    #     model=model,
+    #     args=args,
+    #     train_dataset=train_dset,
+    #     eval_dataset=test_dset,
+    #     data_collator=block.collator,
+    #     compute_metrics=metric,
+    # )
+    # 
+    # main(learn, input_args, n_lbl=n_lbl)
+
+    metric = PrecReclMrr(block.n_lbl, block.test.data_lbl_filterer, prop=block.train.dset.data.data_lbl,
                          pk=10, rk=200, rep_pk=[1, 3, 5, 10], rep_rk=[10, 100, 200], mk=[5, 10, 20])
 
     learn = XCLearner(
         model=model,
         args=args,
-        train_dataset=train_dset,
-        eval_dataset=test_dset,
+        train_dataset=block.train.dset,
+        eval_dataset=block.test.dset,
         data_collator=block.collator,
         compute_metrics=metric,
     )
     
-    main(learn, input_args, n_lbl=n_lbl)
-    
+    main(learn, input_args, n_lbl=block.n_lbl)
+

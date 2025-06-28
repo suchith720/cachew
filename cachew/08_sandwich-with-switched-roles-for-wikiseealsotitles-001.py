@@ -130,7 +130,7 @@ if __name__ == '__main__':
         save_total_limit=5,
         num_train_epochs=300,
         predict_with_representation=True,
-        adam_epsilon=1e-6,
+        adam_epsilon=1e-4,
         warmup_steps=100,
         weight_decay=0.01,
         learning_rate=2e-4,
