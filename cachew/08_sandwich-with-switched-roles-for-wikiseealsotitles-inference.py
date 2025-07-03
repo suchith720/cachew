@@ -5,7 +5,7 @@ __all__ = ['fill_matrix', 'swap_lbl_and_meta']
 
 # %% ../nbs/08_sandwich-with-switched-roles-for-wikiseealsotitles.ipynb 3
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '12,13,14,15'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
 
 import torch,json, torch.multiprocessing as mp, joblib, numpy as np, scipy.sparse as sp
 
@@ -93,7 +93,7 @@ def swap_lbl_and_meta(dset, meta_name:str, thresh:Optional[int]=20, batch_size:O
 
 # %% ../nbs/08_sandwich-with-switched-roles-for-wikiseealsotitles.ipynb 32
 if __name__ == '__main__':
-    output_dir = '/home/aiscuser/scratch1/outputs/cachew/08_sandwich-with-switched-roles-for-wikiseealsotitles-002'
+    output_dir = '/home/aiscuser/scratch1/outputs/cachew/08_sandwich-with-switched-roles-for-wikiseealsotitles-001'
 
     data_dir = '/data/datasets/benchmarks/'
     config_file = 'wikiseealsotitles'
