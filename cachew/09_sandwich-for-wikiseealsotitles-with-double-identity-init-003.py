@@ -5,7 +5,7 @@ __all__ = []
 
 # %% ../nbs/07_sandwich-for-wikiseealsotitles.ipynb 3
 import os
-os.environ['HIP_VISIBLE_DEVICES'] = '12,13,14,15'
+os.environ['HIP_VISIBLE_DEVICES'] = '0,1,2,3'
 
 import torch,json, torch.multiprocessing as mp, joblib, numpy as np, scipy.sparse as sp
 
@@ -17,7 +17,7 @@ os.environ['WANDB_PROJECT'] = 'sandwich_00-wikiseealsotitles-02'
 
 # %% ../nbs/07_sandwich-for-wikiseealsotitles.ipynb 7
 if __name__ == '__main__':
-    output_dir = '/home/aiscuser/scratch1/outputs/sandwich/09_sandwich-for-wikiseealsotitles-with-double-identity-init-001'
+    output_dir = '/home/aiscuser/scratch1/outputs/sandwich/09_sandwich-for-wikiseealsotitles-with-double-identity-init-003'
 
     data_dir = '/data/datasets/benchmarks/'
     config_file = 'wikiseealsotitles'
@@ -59,14 +59,9 @@ if __name__ == '__main__':
         learning_rate=2e-4,
         representation_search_type='BRUTEFORCE',
     
-        # representation_attribute='data_enriched_repr',
-        # output_representation_attribute='data_enriched_repr',
-        # label_representation_attribute='data_enriched_repr',
-
-        representation_attribute='data_data_meta_repr',
-        output_representation_attribute='data_data_meta_repr',
-        label_representation_attribute='data_data_meta_repr',
-
+        representation_attribute='data_enriched_repr',
+        output_representation_attribute='data_enriched_repr',
+        label_representation_attribute='data_enriched_repr',
         clustering_representation_attribute='data_enriched_repr',
         data_augmentation_attribute='data_repr',
         metadata_representation_attribute='data_repr',
@@ -158,43 +153,21 @@ if __name__ == '__main__':
     def init_fn(model):
         model.init_meta_distilbert()
         model.init_heads_to_identity()
-        model.init_combiner_to_double_identity()
+        # model.init_combiner_to_double_identity()
 
     model = load_model(args.output_dir, model_fn, {"mname": mname}, init_fn, do_inference=do_inference, 
                        use_pretrained=input_args.use_pretrained)
 
-    # metric = PrecReclMrr(block.n_lbl, block.test.data_lbl_filterer, prop=block.train.dset.data.data_lbl,
-    #                      pk=10, rk=200, rep_pk=[1, 3, 5, 10], rep_rk=[10, 100, 200], mk=[5, 10, 20])
-    # 
-    # learn = XCLearner(
-    #     model=model,
-    #     args=args,
-    #     train_dataset=block.train.dset,
-    #     eval_dataset=block.test.dset,
-    #     data_collator=block.collator,
-    #     compute_metrics=metric,
-    # )
-    # 
-    # main(learn, input_args, n_lbl=block.n_lbl, eval_k=10, train_k=10)
-
-    linker_block = block.linker_dset(f'{meta_name}_meta', remove_empty=False)
-
-    train_dset = block.inference_dset(linker_block.train.dset.data.data_info, linker_block.train.dset.data.data_lbl, linker_block.train.dset.data.lbl_info, 
-            linker_block.train.dset.data.data_lbl_filterer)
-    test_dset = block.inference_dset(linker_block.test.dset.data.data_info, linker_block.test.dset.data.data_lbl, linker_block.test.dset.data.lbl_info, 
-            linker_block.test.dset.data.data_lbl_filterer)
-
-    metric = PrecReclMrr(test_dset.data.n_lbl, test_dset.data.data_lbl_filterer, prop=linker_block.train.dset.data.data_lbl,
+    metric = PrecReclMrr(block.n_lbl, block.test.data_lbl_filterer, prop=block.train.dset.data.data_lbl,
                          pk=10, rk=200, rep_pk=[1, 3, 5, 10], rep_rk=[10, 100, 200], mk=[5, 10, 20])
-
+    
     learn = XCLearner(
         model=model,
         args=args,
-        train_dataset=train_dset,
-        eval_dataset=test_dset,
-        data_collator=linker_block.collator,
+        train_dataset=block.train.dset,
+        eval_dataset=block.test.dset,
+        data_collator=block.collator,
         compute_metrics=metric,
     )
-
-    main(learn, input_args, n_lbl=test_dset.data.n_lbl, eval_k=10, train_k=10)
-
+    
+    main(learn, input_args, n_lbl=block.n_lbl, eval_k=10, train_k=10)
