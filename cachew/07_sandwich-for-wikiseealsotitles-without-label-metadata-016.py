@@ -5,7 +5,7 @@ __all__ = []
 
 # %% ../nbs/07_sandwich-for-wikiseealsotitles.ipynb 3
 import os
-os.environ['HIP_VISIBLE_DEVICES'] = '6,7,8,9'
+os.environ['HIP_VISIBLE_DEVICES'] = '2,3,4,5'
 
 import torch,json, torch.multiprocessing as mp, joblib, numpy as np, scipy.sparse as sp
 
@@ -13,11 +13,11 @@ from xcai.basics import *
 from xcai.models.sandwich import SAW002, SandwichConfig
 
 # %% ../nbs/07_sandwich-for-wikiseealsotitles.ipynb 5
-os.environ['WANDB_PROJECT'] = 'sandwich_00-wikiseealsotitles'
+os.environ['WANDB_PROJECT'] = 'sandwich_00-wikiseealsotitles-02'
 
 # %% ../nbs/07_sandwich-for-wikiseealsotitles.ipynb 7
 if __name__ == '__main__':
-    output_dir = '/data/outputs/sandwich/07_sandwich-for-wikiseealsotitles-007'
+    output_dir = '/home/aiscuser/scratch1/outputs/sandwich/07_sandwich-for-wikiseealsotitles-without-label-metadata-016'
 
     data_dir = '/data/datasets/benchmarks/'
     config_file = 'wikiseealsotitles'
@@ -39,32 +39,6 @@ if __name__ == '__main__':
     block = build_block(pkl_file, config_file, input_args.use_sxc_sampler, config_key, do_build=input_args.build_block, only_test=input_args.only_test, 
                         n_slbl_samples=4, main_oversample=False, n_sdata_meta_samples=1, n_slbl_meta_samples=1, meta_oversample=False, data_dir=data_dir)
 
-    # # debug
-    # from xcai.metrics import prec_recl
-
-    # test_ids = set(block.test.dset.data.data_info['identifier'])
-    # lbl_ids = set(block.test.dset.data.lbl_info['identifier'])
-    # # valid_ids = [i for i, ids in enumerate(test_ids) if ids not in lbl_ids]
-    # valid_ids = [i for i, ids in enumerate(test_ids) if ids in lbl_ids]
-
-    # pred_file = '/home/aiscuser/scratch1/outputs/sandwich/07_sandwich-for-wikiseealsotitles-007/predictions/test_predictions_data-meta.npz'
-    # pred_meta_sandwich = sp.load_npz(pred_file)[valid_ids]
-
-    # pred_file = '/data/datasets/benchmarks/(mapped)LF-WikiSeeAlsoTitles-320K/category_renee_tst_X_Y.npz'
-    # pred_meta_renee = sp.load_npz(pred_file)[valid_ids]
-
-    # test_meta = block.test.dset.meta[f'{meta_name}_meta'].data_meta[valid_ids]
-    # train_meta = block.train.dset.meta[f'{meta_name}_meta'].data_meta
-
-    # metrics = prec_recl(pred_meta_sandwich, test_meta, prop=train_meta, pk=10, rk=200, rep_pk=[1, 3, 5, 10], rep_rk=[10, 100, 200])
-    # print(metrics)
-
-    # metrics = prec_recl(pred_meta_renee, test_meta, prop=train_meta, pk=10, rk=200, rep_pk=[1, 3, 5, 10], rep_rk=[10, 100, 200])
-    # print(metrics)
-
-    # breakpoint()
-    # # debug
-
     args = XCLearningArguments(
         output_dir=output_dir,
         logging_first_step=True,
@@ -79,7 +53,7 @@ if __name__ == '__main__':
         save_total_limit=5,
         num_train_epochs=300,
         predict_with_representation=True,
-        adam_epsilon=1e-6,
+        adam_epsilon=1e-4,
         warmup_steps=100,
         weight_decay=0.01,
         learning_rate=2e-4,
@@ -88,18 +62,9 @@ if __name__ == '__main__':
         representation_attribute='data_enriched_repr',
         output_representation_attribute='data_enriched_repr',
         label_representation_attribute='data_enriched_repr',
-        # output_representation_attribute='data_data_meta_repr',
-        # representation_attribute='data_data_meta_repr',
-        # label_representation_attribute='data_data_meta_repr',
-
         clustering_representation_attribute='data_enriched_repr',
         data_augmentation_attribute='data_repr',
         metadata_representation_attribute='data_repr',
-
-        centroid_data_batch_size=2048,
-        centroid_data_attribute_representation='data_enriched_repr',
-        use_centroid_data_metadata=True,
-        use_centroid_label_representation=True,
     
         group_by_cluster=True,
         num_clustering_warmup_epochs=10,
@@ -153,7 +118,7 @@ if __name__ == '__main__':
     
     config = SandwichConfig(
         data_aug_meta_prefix=f'{meta_name}2data', 
-        lbl2data_aug_meta_prefix=f'{meta_name}2lbl',
+        lbl2data_aug_meta_prefix=None,
     
         data_enrich=True,
         lbl2data_enrich=True,
